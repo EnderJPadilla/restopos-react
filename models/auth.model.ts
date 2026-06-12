@@ -12,6 +12,8 @@ export interface UsuarioApi {
   lastName: string;
   username: string;
   role: string;
+  requirePasswordChange: boolean;
+  password?: string;
 }
 
 export interface LoginResponse {

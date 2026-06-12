@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import type { User, Order } from "@/lib/types"
+import type { Order } from "@/lib/types"
 import { mockOrders } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,6 +21,7 @@ import {
   Receipt,
   DollarSign,
 } from "lucide-react"
+import { User } from "@/models/usuario.model"
 
 interface CashierInterfaceProps {
   user: User

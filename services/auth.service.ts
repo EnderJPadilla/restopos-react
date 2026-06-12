@@ -21,8 +21,38 @@ export const AuthService = {
     );
   },
 
-  async validarToken(): Promise<User | null> {
+  async cambiarPassword(nuevaPassword: string) {
+    try {
+      const response = await apiFetch<{
+        success: boolean
+        message: string
+      }>(
+        "/auth/cambiar_password",
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            password: nuevaPassword
+          }),
+        }
+      );
+      
+      if (!response.success) {
+        return {
+          message: "error al obtener respuesta del servicio."
+        };
+      }
 
+      return response;
+
+    } catch {
+      return {
+        message: "error al obtener respuesta del servicio."
+      };;
+    }
+
+  },
+
+  async validarToken(): Promise<User | null> {
     try {
       const response = await apiFetch<{
         success: boolean;

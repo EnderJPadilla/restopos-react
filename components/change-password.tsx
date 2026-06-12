@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label"
 import { InputGroup, InputGroupInput, InputGroupAddon } from "@/components/ui/input-group"
 import { Lock, Eye, EyeOff, AlertCircle, Check, X, ShieldCheck, KeyRound } from "lucide-react"
+import { toast } from "sonner"
 
 interface PasswordRule {
   label: string
@@ -25,7 +26,7 @@ const passwordRules: PasswordRule[] = [
   { label: "Una letra mayúscula", test: (pw) => /[A-Z]/.test(pw) },
   { label: "Una letra minúscula", test: (pw) => /[a-z]/.test(pw) },
   { label: "Un número", test: (pw) => /[0-9]/.test(pw) },
-  { label: "Un carácter especial (!@#$%...)", test: (pw) => /[^A-Za-z0-9]/.test(pw) },
+  // { label: "Un carácter especial (!@#$%...)", test: (pw) => /[^A-Za-z0-9]/.test(pw) },
 ]
 
 function getStrength(pw: string): { score: number; label: string; color: string } {
@@ -79,11 +80,9 @@ function PasswordField({ id, label, value, onChange, placeholder, autoComplete }
 }
 
 interface PasswordFormProps {
-  /** When true, the current password field is hidden (admin-forced reset with temporary password already validated). */
   requireCurrent?: boolean
-  /** The known current password to validate against (demo only). */
   currentPasswordValue?: string
-  onSuccess: () => void
+  onSuccess?: (newPassword: string) => void | Promise<void>
   onCancel?: () => void
   submitLabel?: string
 }
@@ -105,7 +104,7 @@ function PasswordForm({
   const allRulesPass = passwordRules.every((r) => r.test(next))
   const matches = next.length > 0 && next === confirm
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
@@ -130,11 +129,25 @@ function PasswordForm({
       return
     }
 
-    setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
-      onSuccess()
-    }, 600)
+    // setIsLoading(true)
+    // setTimeout(() => {
+    //   setIsLoading(false)
+    //   onSuccess()
+    // }, 600)
+    try {
+      setIsLoading(true);
+      if (onSuccess) {
+        await onSuccess?.(next);
+      }
+    } catch(error){
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error actualizando contraseña"
+      );
+    } finally{
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -257,14 +270,18 @@ export function ChangePasswordDialog({
 }: ChangePasswordDialogProps) {
   const [done, setDone] = useState(false)
 
-  const handleSuccess = () => {
-    setDone(true)
-    onSuccess?.()
+  const handleSuccess = async (
+    _newPassword: string
+  ) => {
+
+    setDone(true);
+    onSuccess?.();
     setTimeout(() => {
-      setDone(false)
-      onOpenChange(false)
-    }, 1500)
-  }
+      setDone(false);
+      onOpenChange(false);
+    }, 1500);
+
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -302,9 +319,8 @@ export function ChangePasswordDialog({
 
 interface ForcePasswordChangeScreenProps {
   userName: string
-  /** Temporary password the admin set, used to validate the "current" field. */
   temporaryPassword?: string
-  onComplete: () => void
+  onComplete:(password:string)=>Promise<void>
   onLogout: () => void
 }
 

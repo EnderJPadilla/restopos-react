@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef } from "react"
-import type { User, UserRole, UserStatus, UserPermissions, WeeklySchedule, DaySchedule } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -39,6 +38,7 @@ import {
   Landmark,
   HeartPulse,
 } from "lucide-react"
+import { User, UserRole, UserStatus, UserPermissions, WeeklySchedule, DaySchedule } from "@/models/usuario.model"
 
 interface UserFormProps {
   user?: User
@@ -52,14 +52,14 @@ const roleLabels: Record<UserRole, string> = {
   cashier: "Cajero",
 }
 
-const statusLabels: Record<UserStatus, string> = {
+export const statusLabels: Record<UserStatus, string> = {
   active: "Activo",
   inactive: "Inactivo",
   suspended: "Suspendido",
   on_leave: "Con Permiso",
 }
 
-const statusColors: Record<UserStatus, string> = {
+export const statusColors: Record<UserStatus, string> = {
   active: "bg-success text-success-foreground",
   inactive: "bg-secondary text-secondary-foreground",
   suspended: "bg-destructive text-destructive-foreground",
@@ -277,8 +277,11 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
     if (!formData.firstName?.trim()) errors.firstName = "El nombre es obligatorio"
     if (!formData.lastName?.trim()) errors.lastName = "El apellido es obligatorio"
     if (!formData.role) errors.role = "El rol es obligatorio"
-    if (!formData.pin || formData.pin.length < 4) errors.pin = "El PIN debe tener al menos 4 digitos"
-    if (formData.pin && !/^\d+$/.test(formData.pin)) errors.pin = "El PIN solo debe contener numeros"
+    if (!formData.documentType?.trim()) errors.documentType = "Seleccione tipo de documento"
+    if (!formData.documentNumber?.trim()) errors.documentNumber = "Digite número de documento"
+    if (!formData.username?.trim()) errors.username = "El nombre de usuario es obligatorio"
+    if (formData.id === "" && (!formData.pin || formData.pin.length < 4)) errors.pin = "El PIN debe tener al menos 4 digitos"
+    if (formData.id === "" && (formData.pin && !/^\d+$/.test(formData.pin))) errors.pin = "El PIN solo debe contener numeros"
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = "Formato de email invalido"
     }
@@ -293,11 +296,11 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
     if (!validate()) return
     const fullName = `${formData.firstName || ""} ${formData.lastName || ""}`.trim()
     const userData: User = {
-      id: formData.id || `user-${Date.now()}`,
+      id: "",
+      ...formData,
+      empresa_id: '',
       name: fullName || formData.name || "",
       role: formData.role || "waiter",
-      ...formData,
-      name: fullName,
       createdAt: formData.createdAt || new Date(),
       updatedAt: new Date(),
     }
@@ -612,7 +615,7 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                         type="tel"
                         value={formData.phone || ""}
                         onChange={(e) => updateField("phone", e.target.value)}
-                        placeholder="+52 55 1234 5678"
+                        placeholder="+57 300 000 0000"
                         className={validationErrors.phone ? "border-destructive" : ""}
                       />
                       {validationErrors.phone && (
@@ -632,7 +635,7 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                         type="tel"
                         value={formData.secondaryPhone || ""}
                         onChange={(e) => updateField("secondaryPhone", e.target.value)}
-                        placeholder="+52 55 8765 4321"
+                        placeholder="+57 300 000 0000"
                       />
                     </div>
                     <div className="space-y-2">
@@ -689,7 +692,7 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                     id="address"
                     value={formData.address || ""}
                     onChange={(e) => updateField("address", e.target.value)}
-                    placeholder="Ej: Av. Insurgentes Sur 1234, Col. Del Valle"
+                    placeholder="Ej: Cra 123 # 4 - 5, Los Laureles"
                   />
                 </div>
                 <div className="grid md:grid-cols-3 gap-4">
@@ -699,16 +702,16 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                       id="city"
                       value={formData.city || ""}
                       onChange={(e) => updateField("city", e.target.value)}
-                      placeholder="Ej: Ciudad de Mexico"
+                      placeholder="Ej: Barranquilla"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="state">Estado</Label>
+                    <Label htmlFor="state">Departamento / Estado</Label>
                     <Input
                       id="state"
                       value={formData.state || ""}
                       onChange={(e) => updateField("state", e.target.value)}
-                      placeholder="Ej: CDMX"
+                      placeholder="Ej: Atlantico"
                     />
                   </div>
                   <div className="space-y-2">
@@ -754,7 +757,7 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                       type="tel"
                       value={formData.emergencyContactPhone || ""}
                       onChange={(e) => updateField("emergencyContactPhone", e.target.value)}
-                      placeholder="+52 55 1234 5678"
+                      placeholder="+57 300 000 0000"
                     />
                   </div>
                   <div className="space-y-2">
@@ -799,7 +802,9 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                     <Label htmlFor="documentType">Tipo de Documento</Label>
                     <Select
                       value={formData.documentType || ""}
-                      onValueChange={(value: "ine" | "passport" | "curp" | "rfc" | "other") =>
+                      onValueChange={(
+                        value:  "CC" | "TI" | "CE" | "PAS" | "PEP" | "PPT" | "RC" | "NIT" | "OTRO"
+                      ) =>
                         updateField("documentType", value)
                       }
                     >
@@ -807,13 +812,23 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                         <SelectValue placeholder="Seleccionar tipo" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ine">INE / IFE</SelectItem>
-                        <SelectItem value="passport">Pasaporte</SelectItem>
-                        <SelectItem value="curp">CURP</SelectItem>
-                        <SelectItem value="rfc">RFC</SelectItem>
-                        <SelectItem value="other">Otro</SelectItem>
+                        <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
+                        <SelectItem value="TI">Tarjeta de Identidad</SelectItem>
+                        <SelectItem value="CE">Cédula de Extranjería</SelectItem>
+                        <SelectItem value="PAS">Pasaporte</SelectItem>
+                        <SelectItem value="PEP">Permiso Especial Permanencia</SelectItem>
+                        <SelectItem value="PPT">Permiso Protección Temporal</SelectItem>
+                        <SelectItem value="RC">Registro Civil</SelectItem>
+                        <SelectItem value="NIT">Identificación Tributaria</SelectItem>
+                        <SelectItem value="OTRO">Otro</SelectItem>
                       </SelectContent>
                     </Select>
+                    {validationErrors.documentType && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        {validationErrors.documentType}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="documentNumber">Numero de Documento</Label>
@@ -823,6 +838,12 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                       onChange={(e) => updateField("documentNumber", e.target.value)}
                       placeholder="Numero de identificacion"
                     />
+                    {validationErrors.documentNumber && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        {validationErrors.documentNumber}
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -1070,21 +1091,32 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                     </Label>
                     <Select
                       value={formData.bankName || ""}
-                      onValueChange={(value) => updateField("bankName", value)}
+                      onValueChange={(
+                        value : "BANCOLOMBIA" | "BANCO_BOGOTA" | "DAVIVIENDA" | "BBVA" | "BANCO_OCCIDENTE" | "BANCO_POPULAR" | "BANCO_AV_VILLAS" | "SCOTIABANK_COLPATRIA" | "BANCO_CAJA_SOCIAL" | "BANCO_AGRARIO" | "BANCO_FALABELLA" | "BANCO_PICHINCHA" | "BANCOOMEVA" | "ITAU" | "MIBANCO" | "COOPCENTRAL" | "FINANDINA" | "JP_MORGAN" | "CITIBANK" | "OTRO"
+                      ) => 
+                        updateField("bankName", value)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar banco" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="bbva">BBVA</SelectItem>
-                        <SelectItem value="banamex">Banamex / Citibanamex</SelectItem>
-                        <SelectItem value="santander">Santander</SelectItem>
-                        <SelectItem value="banorte">Banorte</SelectItem>
-                        <SelectItem value="hsbc">HSBC</SelectItem>
-                        <SelectItem value="scotiabank">Scotiabank</SelectItem>
-                        <SelectItem value="azteca">Banco Azteca</SelectItem>
-                        <SelectItem value="nu">Nu</SelectItem>
-                        <SelectItem value="otro">Otro</SelectItem>
+                        <SelectItem value="BANCOLOMBIA">Bancolombia</SelectItem>
+                        <SelectItem value="BANCO_BOGOTA">Banco de Bogotá</SelectItem>
+                        <SelectItem value="DAVIVIENDA">Davivienda</SelectItem>
+                        <SelectItem value="BBVA">BBVA Colombia</SelectItem>
+                        <SelectItem value="BANCO_OCCIDENTE">Banco de Occidente</SelectItem>
+                        <SelectItem value="BANCO_POPULAR">Banco Popular</SelectItem>
+                        <SelectItem value="BANCO_AV_VILLAS">Banco AV Villas</SelectItem>
+                        <SelectItem value="SCOTIABANK_COLPATRIA">Banco Colpatria</SelectItem>
+                        <SelectItem value="BANCO_CAJA_SOCIAL">Banco Caja Social</SelectItem>
+                        <SelectItem value="BANCO_AGRARIO">Banco Agrario</SelectItem>
+                        <SelectItem value="BANCO_FALABELLA">Banco Falabella</SelectItem>
+                        <SelectItem value="BANCO_PICHINCHA">Banco Pichincha</SelectItem>
+                        <SelectItem value="BANCOOMEVA">Bancoomeva</SelectItem>
+                        <SelectItem value="ITAU">Itaú</SelectItem>
+                        <SelectItem value="FINANDINA">Banco Finandina</SelectItem>
+                        <SelectItem value="OTRO">Otro</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1139,9 +1171,12 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                       onChange={(e) => updateField("username", e.target.value)}
                       placeholder="Ej: carlos.garcia"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Opcional. Se puede usar el PIN para acceso rapido.
-                    </p>
+                    {validationErrors.username && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        {validationErrors.username}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">

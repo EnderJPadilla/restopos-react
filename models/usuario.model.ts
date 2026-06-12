@@ -1,7 +1,16 @@
 export type UserRole = "admin" | "waiter" | "cashier"
 export type UserStatus = "active" | "inactive" | "suspended" | "on_leave"
-export type DocumentType = "ine" | "passport" | "curp" | "rfc" | "other"
 export type ContractType = "full_time" | "part_time" | "temporary" | "freelance"
+export type DocumentType =
+  | "CC"   // Cédula de Ciudadanía
+  | "TI"   // Tarjeta de Identidad
+  | "CE"   // Cédula de Extranjería
+  | "PAS"  // Pasaporte
+  | "PEP"  // Permiso Especial de Permanencia
+  | "PPT"  // Permiso por Protección Temporal
+  | "RC"   // Registro Civil
+  | "NIT"  // Número de Identificación Tributaria
+  | "OTRO";
 
 export interface User {
   id: string

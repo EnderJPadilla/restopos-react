@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import type { MenuItem, ProductVariation, NutritionalInfo } from "@/lib/types"
+// import type { MenuItem, ProductVariation, NutritionalInfo } from "@/lib/types"
 import { mockCategories } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -42,6 +42,7 @@ import { UploadService } from "@/services/upload.service"
 import { toast } from "sonner"
 import { getImageUrl } from "@/lib/images"
 import { formatDateTimeLocal } from "@/lib/date-utils"
+import { MenuItem, NutritionalInfo, ProductVariation } from "@/models/producto.model"
 
 interface ProductFormProps {
   product?: MenuItem
@@ -251,6 +252,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
       price: formData.price || 0,
       category: formData.category || "",
       available: formData.available ?? true,
+      removeImage: formData.removeImage ?? false,
       ...formData,
       createdAt: formData.createdAt || new Date(),
       updatedAt: new Date(),
@@ -496,7 +498,12 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                       variant="outline"
                       size="sm"
                       className="w-full bg-transparent text-destructive hover:text-destructive"
-                      onClick={() => updateField("image", "")}
+                      onClick={() => {
+                        updateField("imageAnt", formData.image)
+                        updateField("image", "")
+                        updateField("removeImage", true)
+                        setImagePreview(null);
+                      }}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       Quitar Imagen

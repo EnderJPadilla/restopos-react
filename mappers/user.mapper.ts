@@ -1,19 +1,25 @@
 import { User, UserRole } from "@/models/usuario.model";
 import { UsuarioApi } from "@/models/auth.model";
 
-function mapRole(
+
+export function mapRole(
   role: string
 ): UserRole {
 
   switch (role.toUpperCase()) {
-
     case "ADMINISTRADOR":
+    case "ADMIN":
+    case "admin":
       return "admin";
 
     case "MESERO":
+    case "WAITER":
+    case "waiter":
       return "waiter";
 
     case "CAJERO":
+    case "CASHIER":
+    case "cashier":
       return "cashier";
 
     default:
@@ -33,5 +39,6 @@ export function mapUsuarioToUser(
     username: usuario.username,
     firstName: usuario.firstName,
     lastName: usuario.lastName,
+    requirePasswordChange: usuario.requirePasswordChange
   };
 }

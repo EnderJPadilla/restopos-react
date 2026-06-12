@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import type { User, OrderItem, MenuItem, Table, Order, Reservation } from "@/lib/types"
+import type { OrderItem, MenuItem, Table, Order, Reservation } from "@/lib/types"
 import { mockMenuItems, mockCategories, mockTables, mockOrders } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -72,6 +72,7 @@ import {
   KeyRound,
   UserCheck,
 } from "lucide-react"
+import { User } from "@/models/usuario.model"
 
 interface WaiterInterfaceProps {
   user: User

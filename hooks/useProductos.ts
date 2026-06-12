@@ -53,10 +53,6 @@ export function useProductos() {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log("Actualizando producto specialPriceStart:", producto.specialPriceStart);
-      console.log("Actualizando producto specialPriceEnd:", producto.specialPriceEnd);
-
       const response = await ProductosService.actualizar(producto);
       await cargarProductos();
       return response;

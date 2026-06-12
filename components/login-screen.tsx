@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import type { User } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -12,6 +11,7 @@ import { ChefHat, User as UserIcon, Lock, Eye, EyeOff, AlertCircle } from "lucid
 
 import { AuthService } from "@/services/auth.service"
 import { mapUsuarioToUser } from "@/mappers/user.mapper"
+import { User } from "@/models/usuario.model"
 
 interface LoginScreenProps {
   onLogin: (user: User, options?: { requirePasswordChange?: boolean; password?: string }) => void
@@ -29,34 +29,27 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   ) => {
 
     e.preventDefault();
-
     setError("");
 
     if (!username || !password) {
-
       setError(
         "Por favor ingresa usuario y contraseña."
       );
-
       return;
     }
 
     try {
-
       setIsLoading(true);
 
-      const response =
-        await AuthService.login({
-          usuario: username,
-          password,
-        });
+      const response = await AuthService.login({
+        usuario: username,
+        password,
+      });
 
       if (!response.authenticated) {
-
         setError(
           "Usuario o contraseña incorrectos."
         );
-
         return;
       }
 
@@ -77,24 +70,23 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         )
       );
 
-      const user =
-        mapUsuarioToUser(
-          response.usuario
-        );
+      const user = mapUsuarioToUser(
+        response.usuario
+      );
+      const options = {
+        requirePasswordChange: response.usuario.requirePasswordChange,
+        password: response.usuario.password
+      }
 
-      onLogin(user);
+      onLogin(user, options);
 
     } catch (error: any) {
-
       setError(
         error.message ||
         "Error al iniciar sesión."
       );
-
     } finally {
-
       setIsLoading(false);
-
     }
 
   };

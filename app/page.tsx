@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import type { User } from "@/lib/types"
 import { useEffect } from "react";
 import { LoginScreen } from "@/components/login-screen"
 import { AdminDashboard } from "@/components/admin/admin-dashboard"
@@ -10,7 +9,8 @@ import { CashierInterface } from "@/components/cashier/cashier-interface"
 import { ForcePasswordChangeScreen } from "@/components/change-password"
 import { getCurrentUser, SessionService } from "@/lib/session";
 import { AuthService } from "@/services/auth.service";
-import { UserRole } from "@/models/usuario.model";
+import { User, UserRole } from "@/models/usuario.model";
+import { toast } from "sonner";
 
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
@@ -28,7 +28,53 @@ export default function Home() {
     setCurrentUser(null)
     setMustChangePassword(false)
     setTemporaryPassword(undefined)
+    SessionService.clear();
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
   }
+
+  const handleCambiarPassword = async (
+    newPassword: string
+  ) => {
+
+    try {
+      const response = await AuthService.cambiarPassword(
+        newPassword
+      );
+
+      toast.success(
+        response.message,
+        {
+          style: {
+            background: "#16a34a",
+            color: "#ffffff",
+            border: "1px solid #15803d",
+          },
+        }
+      );
+      
+      setMustChangePassword(false)
+
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error al cambiar la contraseña.",
+        {
+          style: {
+            background: "#dc2626",
+            color: "#ffffff",
+            border: "1px solid #b91c1c",
+          },
+        }
+      );
+      
+      setMustChangePassword(true)
+
+    }
+
+  };
 
   useEffect(() => {
     const validarSesion = async () => {
@@ -80,33 +126,14 @@ export default function Home() {
       <ForcePasswordChangeScreen
         userName={currentUser.name}
         temporaryPassword={temporaryPassword}
-        onComplete={() => setMustChangePassword(false)}
+        onComplete={handleCambiarPassword}
         onLogout={handleLogout}
       />
     )
   }
 
-  
-  function mapRole(
-    role: string
-  ): UserRole {
-  
-    switch (role.toUpperCase()) {
-      case "ADMINISTRADOR":
-        return "admin";
-  
-      case "MESERO":
-        return "waiter";
-  
-      case "CAJERO":
-        return "cashier";
-  
-      default:
-        return "waiter";
-    }
-  }
-
-  switch (mapRole(currentUser.role)) {
+  // switch (mapRole(currentUser.role)) {
+  switch (currentUser.role) {
     case "admin":
       return <AdminDashboard user={currentUser} onLogout={handleLogout} />
     case "waiter":
@@ -117,3 +144,4 @@ export default function Home() {
       return <LoginScreen onLogin={handleLogin} />
   }
 }
+

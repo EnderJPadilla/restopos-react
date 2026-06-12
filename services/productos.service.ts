@@ -1,7 +1,6 @@
 import { apiFetch } from "./api";
 import { ApiResponse } from "@/models/api-response.model";
 import { Producto } from "@/models/producto.model";
-import { getEmpresaId } from "@/lib/session";
 
 export const ProductosService = {
 
@@ -49,9 +48,6 @@ export const ProductosService = {
   actualizar: async (
     producto: Producto
   ): Promise<ApiResponse<any>> => {
-
-    console.log("Actualizando producto specialPriceStart:", producto.specialPriceStart);
-    console.log("Actualizando producto specialPriceEnd:", producto.specialPriceEnd);
 
     const response = await apiFetch<ApiResponse<any>>(
       "/productos/actualizar_producto",

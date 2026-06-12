@@ -1,9 +1,8 @@
 "use client"
 
-import type { User, MenuItem } from "@/lib/types"
 import { mockCategories, mockUsers } from "@/lib/mock-data"
 import { ProductForm } from "./product-form"
-import { UserForm } from "./user-form"
+import { statusColors, statusLabels, UserForm } from "./user-form"
 import { CategoryManager } from "./category-manager"
 import { PrinterManager } from "./printer-manager"
 import { TableManager } from "./table-manager"
@@ -35,6 +34,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { useProductos } from "@/hooks/useProductos";
+import { useUsuarios } from "@/hooks/useUsuarios";
 import { formatCurrency } from "@/lib/formatters";
 import {
   AlertDialog,
@@ -47,6 +47,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { getImageUrl } from "@/lib/images"
+import { MenuItem } from "@/models/producto.model"
+import { User } from "@/models/usuario.model"
+import { mapRole } from "@/mappers/user.mapper"
 
 interface AdminDashboardProps {
   user: User
@@ -72,6 +76,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const [editingUser, setEditingUser] = useState<User | undefined>(undefined)
 
   const [categorias, setCategorias] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   const [productToDelete, setProductToDelete] = useState<MenuItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -87,16 +92,36 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
     recargar
   } = useProductos();
 
+  const {
+    usuarios,
+    crearUsuario,
+    actualizarUsuario,
+    actualizarEstadoUsuario,
+    eliminarUsuario,
+  } = useUsuarios();
 
 
-  // const filteredMenuItems = mockMenuItems.filter((item) => item.name.toLowerCase().includes(menuSearch.toLowerCase()))
-  const filteredMenuItems = productos.filter(
-    (item) => item.name
-    .toLowerCase()
-    .includes(
-      menuSearch.toLowerCase()
-    )
-  );
+  const filteredMenuItems = 
+    selectedCategory === "all"
+    ? productos.filter(
+        (item) => item.name
+        .toLowerCase()
+        .includes(
+          menuSearch.toLowerCase()
+        )
+      )
+    : productos.filter(
+        (item) => 
+          item.category === selectedCategory 
+          &&
+          item.name
+          .toLowerCase()
+          .includes(
+            menuSearch.toLowerCase()
+          )
+      );
+
+  const UserFilteres = usuarios;
 
   const handleNewProduct = () => {
     setEditingProduct(undefined)
@@ -176,15 +201,50 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
     setShowUserForm(true)
   }
 
-  const handleEditUser = (u: User) => {
-    setEditingUser(u)
+  const handleEditUser = (usuario: User) => {
+    setEditingUser(usuario)
     setShowUserForm(true)
   }
 
-  const handleSaveUser = (u: User) => {
-    console.log("User saved:", u)
-    setShowUserForm(false)
-    setEditingUser(undefined)
+  const handleSaveUser = async (usuario: User) => {
+    try {
+      const response =
+        usuario.id
+          ? await actualizarUsuario(usuario)
+          : await crearUsuario(usuario);
+
+      toast.success(
+        response.message,
+        {
+          style: {
+            background: "#16a34a",
+            color: "#ffffff",
+            border: "1px solid #15803d",
+          },
+        }
+      );
+
+      setShowUserForm(false)
+      setEditingUser(undefined)
+
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error guardando usuario",
+        {
+          style: {
+            background: "#dc2626",
+            color: "#ffffff",
+            border: "1px solid #b91c1c",
+          },
+        }
+      );
+      
+      setShowUserForm(true)
+      setEditingUser(usuario)
+    }
+
   }
 
   const handleCancelUserForm = () => {
@@ -317,7 +377,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                 </Button>
               </div>
 
-              <Tabs defaultValue="all">
+              <Tabs value={selectedCategory} onValueChange={setSelectedCategory} >
                 <TabsList>
                   <TabsTrigger value="all">Todos</TabsTrigger>
                   {mockCategories.map((cat) => (
@@ -327,13 +387,22 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                   ))}
                 </TabsList>
 
-                <TabsContent value="all" className="mt-4">
+                <TabsContent value={selectedCategory} className="mt-4">
                   <div className="grid gap-3">
                     {filteredMenuItems.map((item) => (
                       <Card key={item.id} className="overflow-hidden">
                         <div className="flex items-center p-4">
                           <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center mr-4">
-                            <UtensilsCrossed className="w-6 h-6 text-muted-foreground" />
+                            {item.image ? (
+                              <img
+                                src={getImageUrl(item.image) || "/placeholder.svg"}
+                                alt={item.name}
+                                className="w-full h-full object-cover rounded-lg"
+                                />
+                            ) : ( 
+                                <UtensilsCrossed className="w-6 h-6 text-muted-foreground" /> 
+                              )
+                            }
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
@@ -387,14 +456,14 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
               </div>
 
               <div className="grid gap-4">
-                {(
+                { (
                   [
                     { label: "Administradores", role: "admin" as const },
                     { label: "Meseros", role: "waiter" as const },
                     { label: "Cajeros", role: "cashier" as const },
                   ] as const
                 ).map((group) => {
-                  const usersInRole = mockUsers.filter((u) => u.role === group.role)
+                  const usersInRole = UserFilteres.filter((u) => u.role === mapRole(group.role))
                   return (
                     <Card key={group.role}>
                       <CardHeader className="pb-2">
@@ -413,12 +482,17 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                                     {u.name
                                       .split(" ")
                                       .map((n) => n[0])
-                                      .join("")}
+                                      .join("")
+                                    }
                                   </span>
                                 </div>
                                 <div>
                                   <p className="font-medium">{u.name}</p>
-                                  <p className="text-xs text-muted-foreground">Activo</p>
+                                  {u.status && (
+                                    <Badge className={statusColors[u.status]}>
+                                      {statusLabels[u.status]}
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
                               <Button variant="ghost" size="sm" onClick={() => handleEditUser(u)}>
