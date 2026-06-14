@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useEffect } from "react";
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -23,6 +24,39 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [blockedUntil, setBlockedUntil] = useState<Date | null>(null);
+  const [remainingTime, setRemainingTime] = useState("");
+
+  useEffect(() => {
+
+    if (!blockedUntil) return;
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const unlock = blockedUntil.getTime();
+      const diff = unlock - now;
+
+      if (diff <= 0) {
+        setRemainingTime("");
+        setBlockedUntil(null);
+        clearInterval(interval);
+        return;
+      }
+
+      const minutes = Math.floor(diff / 1000 / 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+
+      setRemainingTime(
+        `${minutes}:${seconds
+          .toString()
+          .padStart(2, "0")}
+        `
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+
+  }, [blockedUntil]);
 
   const handleSubmit = async (
     e: React.FormEvent
@@ -47,8 +81,14 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       });
 
       if (!response.authenticated) {
+        if (response.bloqueado) {
+          setBlockedUntil(
+            new Date(response.fecha_desbloqueo || new Date())
+          );
+        }
+
         setError(
-          "Usuario o contraseña incorrectos."
+          response.message || "Usuario o contraseña incorrectos."
         );
         return;
       }
@@ -169,10 +209,18 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{error}</span>
+                  {blockedUntil && (
+                    <div className="rounded-lg bg-yellow-50 border border-yellow-300 p-2 text-sm">
+                      <p> Podrás intentar nuevamente en: </p>
+                      <p className="text-sm font-bold">
+                        {remainingTime}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+              <Button type="submit" className="w-full" size="lg" disabled={isLoading || !!blockedUntil}>
                 {isLoading ? "Verificando..." : "Ingresar"}
               </Button>
             </form>

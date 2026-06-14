@@ -9,6 +9,7 @@ export interface User {
   name: string
   role: UserRole
   avatar?: string
+  empresa_id?: string
 
   // Personal Information
   firstName?: string

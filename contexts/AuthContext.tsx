@@ -93,7 +93,15 @@ export function AuthProvider({
 
     localStorage.setItem(
       "user",
-      JSON.stringify(userData)
+      JSON.stringify({
+        id: userData.id,
+        empresa_id: userData.empresa_id,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        name: userData.name,
+        role: userData.role,
+        username : userData.username
+      })
     );
 
     localStorage.setItem(

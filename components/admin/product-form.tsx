@@ -125,10 +125,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   const handleImageSelect = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       setUploadingImage(true);
       if (!file.type.startsWith("image/")) {
@@ -157,10 +155,9 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
           }
         );
         return;
-
       }
 
-      const imageUrl = await UploadService.subirImagen(file);
+      const imageUrl = await UploadService.subirImagen(file, "img_producto");
       // Vista previa
       setImagePreview(imageUrl);
       // Guardar URL para enviar a PostgreSQL
@@ -450,13 +447,8 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
                             ? (
                               <img
                                 src={getImageUrl(imagePreview)}
-                                alt="Vista previa de la imagen seleccionada"
-                                className="
-                                  w-full
-                                  h-full
-                                  object-cover
-                                  rounded-md
-                                "
+                                alt="Vista previa de la imagen"
+                                className="w-full h-full object-cover rounded-md"
                               />
                             )
                             : (

@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import type { Category } from "@/lib/types"
-import { mockCategories } from "@/lib/mock-data"
+// import type { Category } from "@/lib/types"
+// import { mockCategories } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -51,6 +51,9 @@ import {
   Search,
   X,
 } from "lucide-react"
+import { Category } from "@/models/categoria.model"
+import { useCategory } from "@/hooks/useCategory"
+import { toast } from "sonner"
 
 const PREPARATION_AREAS = [
   { value: "cocina", label: "Cocina" },
@@ -104,19 +107,19 @@ const emptyCategory: Category = {
 }
 
 export function CategoryManager() {
-  const [categories, setCategories] = useState<Category[]>(
-    mockCategories.map((c, i) => ({
-      ...c,
-      status: "active" as const,
-      sortOrder: i + 1,
-      showInPOS: true,
-      showInOnline: true,
-      color: PRESET_COLORS[i % PRESET_COLORS.length],
-      preparationArea: (i < 2 ? "cocina" : i === 2 ? "barra" : i === 3 ? "postres" : "cocina") as Category["preparationArea"],
-      availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
-      taxRate: 16,
-      productCount: [3, 5, 4, 3, 1][i] || 0,
-    }))
+  const [categories, setCategories] = useState<Category[]>([]
+    // mockCategories.map((c, i) => ({
+    //   ...c,
+    //   status: "active" as const,
+    //   sortOrder: i + 1,
+    //   showInPOS: true,
+    //   showInOnline: true,
+    //   color: PRESET_COLORS[i % PRESET_COLORS.length],
+    //   preparationArea: (i < 2 ? "cocina" : i === 2 ? "barra" : i === 3 ? "postres" : "cocina") as Category["preparationArea"],
+    //   availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+    //   taxRate: 16,
+    //   productCount: [3, 5, 4, 3, 1][i] || 0,
+    // }))
   )
 
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -127,15 +130,24 @@ export function CategoryManager() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeSection, setActiveSection] = useState<"general" | "display" | "operations" | "schedule">("general")
 
-  const filteredCategories = categories.filter((c) =>
+  // Cargar las categorias
+  const { 
+    categorias,
+    crearCategoria,
+    actualizarCategoria,
+    actualizarDisponibilidad,
+    eliminarCategoria,
+  } = useCategory();
+
+  const filteredCategories = categorias.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handleNewCategory = () => {
     setEditingCategory({
       ...emptyCategory,
-      id: `cat-${Date.now()}`,
-      sortOrder: categories.length + 1,
+      id: "",
+      sortOrder: categorias.length + 1,
     })
     setIsEditing(false)
     setActiveSection("general")
@@ -149,7 +161,7 @@ export function CategoryManager() {
     setDialogOpen(true)
   }
 
-  const handleSaveCategory = () => {
+  const handleSaveCategory = async () => {
     if (!editingCategory.name.trim()) return
 
     if (isEditing) {
@@ -162,7 +174,38 @@ export function CategoryManager() {
         { ...editingCategory, createdAt: new Date(), updatedAt: new Date() },
       ])
     }
-    setDialogOpen(false)
+
+    try {
+      const response = 
+        editingCategory.id
+        ? await actualizarCategoria(editingCategory)
+        : await crearCategoria(editingCategory);
+
+      toast.success(response.message, {
+        style: {
+          background: "#16a34a",
+          color: "#ffffff",
+          border: "1px solid #15803d",
+        },
+      });
+
+      setDialogOpen(false);
+      setEditingCategory(emptyCategory);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Error guardando categoria",
+        {
+          style: {
+            background: "#dc2626",
+            color: "#ffffff",
+            border: "1px solid #b91c1c",
+          },
+        },
+      );
+
+      setDialogOpen(true);
+      setEditingCategory(editingCategory);
+    }
   }
 
   const handleRequestDelete = (category: Category) => {
@@ -170,12 +213,18 @@ export function CategoryManager() {
     setDeleteDialogOpen(true)
   }
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (categoryToDelete) {
       setCategories((prev) => prev.filter((c) => c.id !== categoryToDelete.id))
+      try {
+        await eliminarCategoria(categoryToDelete.id);
+      } catch (error) {
+        error instanceof Error ? error.message : "Error al eliminar la categoria.";
+      } finally {
+        setDeleteDialogOpen(false)
+        setCategoryToDelete(null)
+      }
     }
-    setDeleteDialogOpen(false)
-    setCategoryToDelete(null)
   }
 
   const handleToggleStatus = (id: string) => {
@@ -186,6 +235,7 @@ export function CategoryManager() {
           : c
       )
     )
+    
   }
 
   const toggleDay = (day: string) => {
@@ -300,7 +350,7 @@ export function CategoryManager() {
               <div className="flex items-center gap-1 shrink-0">
                 <Switch
                   checked={category.status === "active"}
-                  onCheckedChange={() => handleToggleStatus(category.id)}
+                  onCheckedChange={(checked) => actualizarDisponibilidad(category.id, checked)}
                 />
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditCategory(category)}>
                   <Edit className="w-4 h-4" />
@@ -326,8 +376,8 @@ export function CategoryManager() {
 
         {/* Summary */}
         <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border">
-          <span>{categories.length} categorias en total</span>
-          <span>{categories.filter((c) => c.status === "active").length} activas</span>
+          <span>{categorias.length} categorias en total</span>
+          <span>{categorias.filter((c) => c.status === "active").length} activas</span>
         </div>
       </CardContent>
 
@@ -479,7 +529,7 @@ export function CategoryManager() {
                           Ninguna (categoria principal)
                         </span>
                       </SelectItem>
-                      {categories
+                      {categorias
                         .filter((c) => c.id !== editingCategory.id)
                         .map((c) => (
                           <SelectItem key={c.id} value={c.id}>

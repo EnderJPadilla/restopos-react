@@ -4,7 +4,8 @@ import { ApiResponse } from "@/models/api-response.model";
 export const UploadService = {
 
   async subirImagen(
-    file: File
+    file: File,
+    tipo: String
   ): Promise<string> {
 
     const token = localStorage.getItem(
@@ -19,7 +20,7 @@ export const UploadService = {
     );
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/upload/img_producto`,
+      `${process.env.NEXT_PUBLIC_API_URL}/upload/${tipo}`,
       {
         method: "POST",
         headers: {

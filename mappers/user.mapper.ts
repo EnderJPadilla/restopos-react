@@ -39,6 +39,7 @@ export function mapUsuarioToUser(
     username: usuario.username,
     firstName: usuario.firstName,
     lastName: usuario.lastName,
+    avatar: usuario.avatar,
     requirePasswordChange: usuario.requirePasswordChange
   };
 }

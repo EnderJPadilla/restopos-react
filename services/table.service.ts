@@ -1,13 +1,13 @@
-import { Category } from "@/models/categoria.model";
+import { Table } from "@/models/table.model";
 import { apiFetch } from "./api";
 import { ApiResponse } from "@/models/api-response.model";
 
-export const CategoriasService = {
+export const TableService = {
 
-  obtenerCategorias: async (): Promise<Category[]> => {
+  obtenerMesas: async (): Promise<Table[]> => {
 
-    const response = await apiFetch<ApiResponse<Category[]>>(
-      "/categorias/listar_categorias",
+    const response = await apiFetch<ApiResponse<Table[]>>(
+      "/tables/listar_mesas",
       {
         method: "POST"
       }
@@ -23,15 +23,15 @@ export const CategoriasService = {
   },
 
   crear: async (
-    categoria: Category
+    mesa: Table
   ): Promise<ApiResponse<any>> => {
 
     const response = await apiFetch<ApiResponse<any>>(
-      "/categorias/nueva_categoria",
+      "/tables/nueva_mesa",
       {
         method: "POST",
         body: JSON.stringify({
-          dataCategoria: categoria
+          dataTable: mesa
         })
       }
     );
@@ -46,15 +46,15 @@ export const CategoriasService = {
   },
 
   actualizar: async (
-    categoria: Category
+    mesa: Table
   ): Promise<ApiResponse<any>> => {
 
     const response = await apiFetch<ApiResponse<any>>(
-      "/categorias/actualizar_categoria",
+      "/tables/actualizar_mesa",
       {
         method: "PUT",
         body: JSON.stringify({
-          dataCategoria: categoria
+          dataTable: mesa
         })
       }
     );
@@ -68,41 +68,43 @@ export const CategoriasService = {
     return response;
   },
 
-  actualizarDisponibilidad: async (
-    idCategoria: string,
-    activo: string
-  ): Promise<ApiResponse<any>> => {
+  // actualizarDisponibilidad: async (
+  //   idMesa: string,
+  //   activo: string
+  // ): Promise<ApiResponse<any>> => {
 
-    const response = await apiFetch<ApiResponse<any>>(
-      "/categorias/categoria_activa",
-      {
-        method: "PUT",
-        body: JSON.stringify({
-          categoria_id: idCategoria,
-          activo
-        })
-      }
-    );
+  //   const response = await apiFetch<ApiResponse<any>>(
+  //     "/tables/mesa_activa",
+  //     {
+  //       method: "PUT",
+  //       body: JSON.stringify({
+  //         categoria_id: idMesa,
+  //         activo
+  //       })
+  //     }
+  //   );
 
-    if (!response.success) {
-      throw new Error(
-        response.message
-      );
-    }
+  //   if (!response.success) {
+  //     throw new Error(
+  //       response.message
+  //     );
+  //   }
 
-    return response;
-  },
+  //   return response;
+  // },
 
   eliminar: async (
-    idCategoria: string
+    idMesa: string,
+    motivo: string
   ): Promise<ApiResponse<any>> => {
 
     const response = await apiFetch<ApiResponse<any>>(
-      "/categorias/eliminar_categoria",
+      "/tables/eliminar_mesa",
       {
         method: "DELETE",
         body: JSON.stringify({
-          categoria_id: idCategoria
+          mesa_id: idMesa,
+          motivo
         })
       }
     );

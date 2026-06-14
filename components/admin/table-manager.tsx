@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import type { Table, TableShape, TableZone } from "@/lib/types"
+// import type { Table, TableShape, TableZone } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -66,6 +66,9 @@ import {
   AlertTriangle,
   Copy,
 } from "lucide-react"
+import { Table, TableShape, TableZone } from "@/models/table.model"
+import { useTable } from "@/hooks/useTable"
+import { toast } from "sonner"
 
 const ZONES: { value: TableZone; label: string; icon: string }[] = [
   { value: "interior", label: "Interior", icon: "🏠" },
@@ -139,19 +142,29 @@ const initialTables: Table[] = Array.from({ length: 12 }, (_, i) => ({
 }))
 
 export function TableManager() {
-  const [tables, setTables] = useState<Table[]>(initialTables)
+  const [tables, setTables] = useState<Table[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [tableToDelete, setTableToDelete] = useState<Table | null>(null)
+  const [deleteReason, setDeleteReason] = useState("");
   const [editingTable, setEditingTable] = useState<Table>(emptyTable)
   const [isEditing, setIsEditing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterZone, setFilterZone] = useState<string>("all")
   const [viewMode, setViewMode] = useState<"list" | "grid">("list")
 
-  const filteredTables = tables.filter((t) => {
+  // Cargar las mesas
+  const { 
+    mesas,
+    crearMesa,
+    actualizarMesa,
+    eliminarMesa,
+  } = useTable();
+
+  const filteredTables = mesas.filter((t) => {
     const matchesSearch =
-      t.number.toString().includes(searchQuery) ||
+      // t.number.toString().includes(searchQuery) ||
+      String(t.number ?? "").includes(searchQuery) ||
       (t.name && t.name.toLowerCase().includes(searchQuery.toLowerCase()))
     const matchesZone = filterZone === "all" || t.zone === filterZone
     return matchesSearch && matchesZone
@@ -161,7 +174,7 @@ export function TableManager() {
     const maxNumber = Math.max(...tables.map((t) => t.number), 0)
     setEditingTable({
       ...emptyTable,
-      id: `table-${Date.now()}`,
+      id: "",
       number: maxNumber + 1,
       sortOrder: tables.length + 1,
     })
@@ -179,7 +192,7 @@ export function TableManager() {
     const maxNumber = Math.max(...tables.map((t) => t.number), 0)
     setEditingTable({
       ...table,
-      id: `table-${Date.now()}`,
+      id: "",
       number: maxNumber + 1,
       name: table.name ? `${table.name} (copia)` : "",
       sortOrder: tables.length + 1,
@@ -188,7 +201,7 @@ export function TableManager() {
     setDialogOpen(true)
   }
 
-  const handleSaveTable = () => {
+  const handleSaveTable = async () => {
     if (editingTable.number < 1) return
 
     if (isEditing) {
@@ -201,20 +214,65 @@ export function TableManager() {
         { ...editingTable, createdAt: new Date(), updatedAt: new Date() },
       ])
     }
-    setDialogOpen(false)
+
+    try {
+      const response = 
+        editingTable.id
+        ? await actualizarMesa(editingTable)
+        : await crearMesa(editingTable);
+
+      toast.success(response.message, {
+        style: {
+          background: "#16a34a",
+          color: "#ffffff",
+          border: "1px solid #15803d",
+        },
+      });
+
+      setDialogOpen(false)
+      setEditingTable(editingTable);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Error guardando mesa",
+        {
+          style: {
+            background: "#dc2626",
+            color: "#ffffff",
+            border: "1px solid #b91c1c",
+          },
+        },
+      );
+
+      setDialogOpen(true);
+      setEditingTable(editingTable);
+    }
+
   }
 
   const handleRequestDelete = (table: Table) => {
     setTableToDelete(table)
+    setDeleteReason("");
     setDeleteDialogOpen(true)
   }
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (tableToDelete) {
+      if (!deleteReason.trim()) {
+        toast.error(
+          "Debe indicar un motivo de eliminación."
+        );
+        return;
+      }
       setTables((prev) => prev.filter((t) => t.id !== tableToDelete.id))
+      try {
+        await eliminarMesa(tableToDelete.id, deleteReason.trim(),);
+      } catch (error) {
+        error instanceof Error ? error.message : "Error al eliminar la mesa.";
+      } finally {
+        setDeleteDialogOpen(false)
+        setTableToDelete(null)
+      }
     }
-    setDeleteDialogOpen(false)
-    setTableToDelete(null)
   }
 
   const handleToggleEnabled = (id: string) => {
@@ -227,12 +285,12 @@ export function TableManager() {
   const getShapeInfo = (shape?: TableShape) => SHAPES.find((s) => s.value === shape)
 
   const stats = {
-    total: tables.length,
-    enabled: tables.filter((t) => t.enabled).length,
-    totalCapacity: tables.filter((t) => t.enabled).reduce((sum, t) => sum + t.capacity, 0),
+    total: mesas.length,
+    enabled: mesas.filter((t) => t.enabled).length,
+    totalCapacity: mesas.filter((t) => t.enabled).reduce((sum, t) => sum + t.capacity, 0),
     byZone: ZONES.map((z) => ({
       ...z,
-      count: tables.filter((t) => t.zone === z.value && t.enabled).length,
+      count: mesas.filter((t) => t.zone === z.value && t.enabled).length,
     })).filter((z) => z.count > 0),
   }
 
@@ -390,18 +448,18 @@ export function TableManager() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 shrink-0">
-                  <Switch
+                  {/* <Switch
                     checked={table.enabled}
                     onCheckedChange={() => handleToggleEnabled(table.id)}
-                  />
-                  <Button
+                  /> */}
+                  {/* <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
                     onClick={() => handleDuplicateTable(table)}
                   >
                     <Copy className="w-4 h-4" />
-                  </Button>
+                  </Button> */}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1140,10 +1198,40 @@ export function TableManager() {
               {tableToDelete?.name && ` "${tableToDelete.name}"`} del sistema.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Motivo de eliminación *
+            </label>
+
+            <Textarea
+              value={deleteReason}
+              onChange={(e) =>
+                setDeleteReason(
+                  e.target.value
+                )
+              }
+              placeholder="Ingrese el motivo de eliminación de la mesa..."
+              rows={4}
+            />
+
+            {
+              deleteReason.trim() === "" &&
+              (
+                <p className="text-xs text-red-500">
+                  Debe ingresar un motivo.
+                </p>
+              )
+            }
+          </div>
+
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
+              disabled={
+                deleteReason.trim() === ""
+              }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Eliminar

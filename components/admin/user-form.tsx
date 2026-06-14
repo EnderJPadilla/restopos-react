@@ -37,8 +37,12 @@ import {
   Hash,
   Landmark,
   HeartPulse,
+  Trash2,
 } from "lucide-react"
 import { User, UserRole, UserStatus, UserPermissions, WeeklySchedule, DaySchedule } from "@/models/usuario.model"
+import { getImageUrl } from "@/lib/images"
+import { toast } from "sonner"
+import { UploadService } from "@/services/upload.service"
 
 interface UserFormProps {
   user?: User
@@ -216,23 +220,71 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
   const [showPin, setShowPin] = useState(false)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const avatarInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith("image/")) {
-      alert("Por favor selecciona un archivo de imagen valido")
-      return
+    try {
+      if (!file.type.startsWith("image/")) {
+        toast.error(
+          "Por favor selecciona una imagen válida.",
+          {
+            style: {
+              background: "#dc2626",
+              color: "#ffffff",
+              border: "1px solid #b91c1c",
+            },
+          }
+        );
+        return;
+      }
+      
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error(
+          "La imagen no debe superar los 2MB.",
+          {
+            style: {
+              background: "#dc2626",
+              color: "#ffffff",
+              border: "1px solid #b91c1c",
+            },
+          }
+        );
+        return;
+      }
+      // const reader = new FileReader()
+      // reader.onload = () => {
+      //   updateField("avatar", reader.result as string)
+      // }
+      // reader.readAsDataURL(file)
+
+      const imageUrl = await UploadService.subirImagen(file, "img_usuario");
+      // Vista previa
+      setImagePreview(imageUrl);
+      // Guardar URL para enviar a PostgreSQL
+      updateField("avatar", imageUrl)
+
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error subiendo imagen",
+        {
+          style: {
+            background: "#dc2626",
+            color: "#ffffff",
+            border: "1px solid #b91c1c",
+          },
+        }
+      );
+    } finally {
+      setUploadingImage(false);
     }
-    if (file.size > 2 * 1024 * 1024) {
-      alert("La imagen no debe superar los 2MB")
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => {
-      updateField("avatar", reader.result as string)
-    }
-    reader.readAsDataURL(file)
+
   }
 
   const updateField = <K extends keyof User>(field: K, value: User[K]) => {
@@ -297,6 +349,7 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
     const fullName = `${formData.firstName || ""} ${formData.lastName || ""}`.trim()
     const userData: User = {
       id: "",
+      removeImage: formData.removeImage ?? false,
       ...formData,
       empresa_id: '',
       name: fullName || formData.name || "",
@@ -471,19 +524,33 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                     {formData.avatar ? (
                       <>
                         <img
-                          src={formData.avatar || "/placeholder.svg"}
-                          alt="Avatar"
+                          src={getImageUrl(formData.avatar) || "/placeholder.svg"}
+                          alt={formData.name}
                           className="w-full h-full object-cover rounded-full"
                         />
                         <div className="absolute inset-0 rounded-full bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <span className="text-xs font-medium">Cambiar</span>
+                          <span className="text-xs font-medium">Cambiar Imagen</span>
                         </div>
                       </>
                     ) : (
-                      <span className="text-4xl font-bold text-muted-foreground">
-                        {(formData.firstName?.[0] || "").toUpperCase()}
-                        {(formData.lastName?.[0] || "").toUpperCase()}
-                      </span>
+                      <>
+                        {
+                          imagePreview
+                            ? (
+                              <img
+                                src={getImageUrl(imagePreview)}
+                                alt="Vista previa de la imagen"
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            )
+                            : (
+                              <span className="text-4xl font-bold text-muted-foreground">
+                                {(formData.firstName?.[0] || "").toUpperCase()}
+                                {(formData.lastName?.[0] || "").toUpperCase()}
+                              </span>
+                            )
+                        }
+                      </>
                     )}
                   </div>
                   <Button
@@ -491,9 +558,18 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                     variant="outline"
                     size="sm"
                     className="bg-transparent"
-                    onClick={() => avatarInputRef.current?.click()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      avatarInputRef.current?.click()
+                    }}
                   >
-                    {formData.avatar ? "Cambiar Foto" : "Subir Foto"}
+                    {
+                      formData.avatar 
+                        ? "Cambiar Foto" 
+                        : uploadingImage
+                          ? "Subiendo..."
+                          : "Subir Foto"
+                    }
                   </Button>
                   {formData.avatar && (
                     <Button
@@ -501,8 +577,14 @@ export function UserForm({ user, onSave, onCancel }: UserFormProps) {
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive h-auto py-1"
-                      onClick={() => updateField("avatar", "")}
+                      onClick={() => {
+                        updateField("imageAnt", formData.avatar)
+                        updateField("avatar", "")
+                        updateField("removeImage", true)
+                        setImagePreview(null)
+                      }}
                     >
+                      <Trash2 className="w-4 h-4 mr-2" />
                       Quitar foto
                     </Button>
                   )}

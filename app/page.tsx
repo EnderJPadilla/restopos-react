@@ -53,6 +53,16 @@ export default function Home() {
           },
         }
       );
+      toast.success(
+        '¡Bienvenido!',
+        {
+          style: {
+            background: "#16a34a",
+            color: "#ffffff",
+            border: "1px solid #15803d",
+          },
+        }
+      );
       
       setMustChangePassword(false)
 

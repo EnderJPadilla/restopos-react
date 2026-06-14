@@ -18,6 +18,8 @@ export interface User {
   name: string
   role: UserRole
   avatar?: string
+  removeImage?: boolean
+  imageAnt?: string
 
   // Personal Information
   firstName?: string

@@ -12,6 +12,7 @@ export interface UsuarioApi {
   lastName: string;
   username: string;
   role: string;
+  avatar: string;
   requirePasswordChange: boolean;
   password?: string;
 }
@@ -21,4 +22,7 @@ export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
   usuario: UsuarioApi;
+  message?: string;
+  bloqueado?: boolean;
+  fecha_desbloqueo: Date;
 }

@@ -2,25 +2,25 @@
 
 import { toast } from "sonner";
 import { useCallback, useEffect, useState } from "react";
-import { Producto } from "@/models/producto.model";
-import { ProductosService } from "@/services/productos.service";
+import { Category } from "@/models/categoria.model";
+import { CategoriasService } from "@/services/categorias.service";
 
-export function useProductos() {
+export function useCategory() {
 
-  const [productos, setProductos] = useState<Producto[]>([]);
+  const [categorias, setCategorias] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const cargarProductos = useCallback(async () => {
+  const cargarCategorias = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await ProductosService.obtenerProductos();
-      setProductos(data);
+      const data = await CategoriasService.obtenerCategorias();
+      setCategorias(data);
     } catch (err) {
       const mensaje = err instanceof Error
         ? err.message
-        : "Error cargando productos.";
+        : "Error cargando categorias.";
 
       setError(mensaje);
 
@@ -29,17 +29,17 @@ export function useProductos() {
     }
   }, []);
 
-  const crearProducto = async (producto: Producto) => {
+  const crearCategoria = async (categoria: Category) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await ProductosService.crear(producto);
-      await cargarProductos();
+      const response = await CategoriasService.crear(categoria);
+      await cargarCategorias();
       return response;
     }catch (err) {
       const mensaje = err instanceof Error
         ? err.message
-        : "Error al crear el producto.";
+        : "Error al crear la categoria.";
 
       setError(mensaje);
       throw err;
@@ -49,17 +49,17 @@ export function useProductos() {
     }
   };
 
-  const actualizarProducto = async (producto: Producto) => {
+  const actualizarCategoria = async (categoria: Category) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await ProductosService.actualizar(producto);
-      await cargarProductos();
+      const response = await CategoriasService.actualizar(categoria);
+      await cargarCategorias();
       return response;
     }catch (err) {
       const mensaje = err instanceof Error
         ? err.message
-        : "Error al actualizar el producto.";
+        : "Error al actualizar la categoria.";
 
       setError(mensaje);
       throw err;
@@ -70,11 +70,11 @@ export function useProductos() {
 
   };
 
-  const actualizarDisponibilidad = async (productoId: string, disponible: boolean) => {
+  const actualizarDisponibilidad = async (categoria_id: string, disponible: boolean) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await ProductosService.actualizarDisponibilidad(productoId, disponible);
+      const response = await CategoriasService.actualizarDisponibilidad(categoria_id, (disponible? 'active' : 'inactive'));
       toast.success(
         response.message,
         {
@@ -85,12 +85,12 @@ export function useProductos() {
           },
         }
       );
-      await cargarProductos();
+      await cargarCategorias();
       return response;
     }catch (err) {
       const mensaje = err instanceof Error
         ? err.message
-        : "Error al actualizar el estado del producto.";
+        : "Error al actualizar el estado de la categoria.";
 
       toast.error(
         err instanceof Error
@@ -114,11 +114,11 @@ export function useProductos() {
 
   };
 
-  const eliminarProducto = async (id: string) => {
+  const eliminarCategoria = async (id: string) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await ProductosService.eliminar(id);
+      const response = await CategoriasService.eliminar(id);
       toast.success(
         response.message,
         {
@@ -129,12 +129,12 @@ export function useProductos() {
           },
         }
       );
-      await cargarProductos();
+      await cargarCategorias();
       return response;
     }catch (err) {
       const mensaje = err instanceof Error
         ? err.message
-        : "Error al eliminar el producto.";
+        : "Error al eliminar la categoria.";
 
       toast.error(
         err instanceof Error
@@ -159,20 +159,19 @@ export function useProductos() {
   };
 
   useEffect(() => {
-    cargarProductos();
-  }, [cargarProductos]);
+    cargarCategorias();
+  }, [cargarCategorias]);
 
 
 
   return {
-    productos,
-    // loading,
+    categorias,
     error,
-    recargar: cargarProductos,
-    crearProducto,
-    actualizarProducto,
+    recargar: cargarCategorias,
+    crearCategoria,
+    actualizarCategoria,
     actualizarDisponibilidad,
-    eliminarProducto,
+    eliminarCategoria,
   };
 
 }
